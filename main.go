@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"os/exec"
 	"path"
@@ -214,7 +216,7 @@ func main() {
 	log("get histories of the current image")
 	histories, err := getHistory(image)
 	if err != nil {
-		exit("Failed to get history of %s", image)
+		exit("Failed to get history", image, err)
 	}
 
 	log("from the history, get list of images that formed the current image")
@@ -249,10 +251,23 @@ func main() {
 	log("===> Finished")
 }
 
-// TODO: use unix socket
 func get(path string) (*http.Response, error) {
-	endpoint := "http://localhost:4243/v1.3/" + path
-	return http.Get(endpoint)
+	dial, err := net.Dial("unix", "/var/run/docker.sock")
+	if err != nil {
+		return nil, err
+	}
+	clientconn := httputil.NewClientConn(dial, nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("/v1.4/%s", path), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := clientconn.Do(req)
+	if err != nil {
+		// tries an older version of the API server with localhost:4243
+		endpoint := "http://localhost:4243/v1.3/" + path
+		return http.Get(endpoint)
+	}
+	return res, err
 }
 
 func exit(args ...interface{}) {
