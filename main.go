@@ -87,9 +87,11 @@ func syncData(img finalImage) (string, error) {
 	if err != nil {
 		return dir, err
 	}
-	for _, img := range img.Images {
+	// rsync old images first so data is overridden properly
+	for i := len(img.Images) - 1; i >= 0; i-- {
+		image := img.Images[i]
 		err := exec.Command("sudo", "rsync", "-aHSx", "--devices", "--specials",
-			path.Join(img.Path(), "layer"), dir).Run()
+			path.Join(image.Path(), "layer"), dir).Run()
 		if err != nil {
 			return dir, err
 		}
