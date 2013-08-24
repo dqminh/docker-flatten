@@ -47,10 +47,13 @@ func (img finalImage) HasPorts() bool {
 	return len(img.Ports()) > 0
 }
 
-// ignore /bin/sh -c
 func (img finalImage) Cmds() []string {
 	cmds := img.Images[0].Config.Cmd
-	return cmds[2:len(cmds)]
+	// ignore /bin/sh -c
+	if len(cmds) > 2 {
+		return cmds[2:len(cmds)]
+	}
+	return []string{}
 }
 
 func (img finalImage) HasCmds() bool {
